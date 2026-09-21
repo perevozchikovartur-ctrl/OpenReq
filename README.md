@@ -126,6 +126,13 @@ OIDC_INSTANCE_ROLE_MAP={"openreq-admin":"admin"}
 Set `LOCAL_AUTH_ENABLED=false` to disable password-based sign-in and
 registration after OIDC has been verified.
 
+On a user's first OIDC sign-in, a verified OIDC email that matches an existing
+local account attaches the external identity to that account automatically.
+Its user ID, workspaces, and existing data are retained; after linking, its
+password is no longer accepted by OpenReq. On subsequent OIDC sign-ins,
+`preferred_username` and the full name are updated when the username is not
+already used by another OpenReq account.
+
 For access to multiple workspaces, use Keycloak's **Group Membership** mapper
 on the OpenReq client and add the `groups` claim to the access token. OpenReq
 recognizes these full group paths:

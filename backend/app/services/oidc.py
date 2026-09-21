@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import HTTPException, Request
 from jose import JWTError, jwt
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -90,6 +91,13 @@ def _unique_username(db: Session, preferred: str) -> str:
         candidate = f"{base[:90]}-{index}"
         index += 1
     return candidate
+
+
+def _oidc_username(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    username = "".join(ch for ch in value if ch.isalnum() or ch in "._-")[:100]
+    return username or None
 
 
 _WORKSPACE_GROUP = re.compile(r"^/openreq/workspaces/([a-z0-9][a-z0-9-]{0,79})/(admin|editor|viewer)$")
@@ -208,16 +216,46 @@ def finish_login(request: Request, db: Session, code: str) -> str:
     issuer = settings.OIDC_ISSUER_URL.rstrip("/")
     user = db.query(User).filter(User.oidc_issuer == issuer, User.oidc_subject == subject).first()
     if not user:
-        # Do not silently attach an external identity to a local account by email.
-        user = User(email=email, username=_unique_username(db, claims.get("preferred_username") or email.split("@")[0]),
-                    full_name=claims.get("name"), hashed_password=hash_password(secrets.token_urlsafe(48)),
-                    auth_provider="oidc", oidc_issuer=issuer, oidc_subject=subject)
-        db.add(user)
-        db.flush()
+        # A verified corporate email is the migration proof for a pre-existing
+        # local account. This keeps its user id, workspaces and all owned data.
+        # Never replace an identity already linked to another OIDC account.
+        if claims.get("email_verified") is True:
+            user = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+        else:
+            user = None
+
+        if user:
+            if not user.is_active:
+                raise HTTPException(status_code=403, detail="Account disabled")
+            if user.oidc_issuer or user.oidc_subject:
+                raise HTTPException(status_code=409, detail="Email is already linked to another OIDC identity")
+            user.auth_provider = "oidc"
+            user.oidc_issuer = issuer
+            user.oidc_subject = subject
+            oidc_username = _oidc_username(claims.get("preferred_username"))
+            if oidc_username:
+                username_owner = db.query(User).filter(User.username == oidc_username, User.id != user.id).first()
+                if not username_owner:
+                    user.username = oidc_username
+            user.full_name = claims.get("name") or user.full_name
+        else:
+            user = User(email=email, username=_unique_username(db, claims.get("preferred_username") or email.split("@")[0]),
+                        full_name=claims.get("name"), hashed_password=hash_password(secrets.token_urlsafe(48)),
+                        auth_provider="oidc", oidc_issuer=issuer, oidc_subject=subject)
+            db.add(user)
+            db.flush()
     elif not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
     else:
-        user.email = email
+        # Do not let a later email change collide with a different local user.
+        email_owner = db.query(User).filter(func.lower(User.email) == email.lower(), User.id != user.id).first()
+        if not email_owner:
+            user.email = email
+        oidc_username = _oidc_username(claims.get("preferred_username"))
+        if oidc_username:
+            username_owner = db.query(User).filter(User.username == oidc_username, User.id != user.id).first()
+            if not username_owner:
+                user.username = oidc_username
         user.full_name = claims.get("name") or user.full_name
 
     roles = keycloak_roles(access_claims)

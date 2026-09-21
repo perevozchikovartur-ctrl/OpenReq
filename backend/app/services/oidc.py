@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.security import create_access_token, hash_password
 from app.models.user import InstanceRoleEnum, User
-from app.models.workspace import WorkspaceMember
+from app.models.workspace import Workspace, WorkspaceMember
 from app.models.user import RoleEnum
 
 
@@ -98,6 +98,23 @@ def _sync_workspace_role(db: Session, user: User, roles: set[str]) -> None:
         db.add(WorkspaceMember(workspace_id=workspace_id, user_id=user.id, role=desired))
 
 
+def _ensure_first_admin_workspace(db: Session, user: User) -> None:
+    """Give the first OIDC instance admin a usable workspace on a fresh install.
+
+    A password-less deployment has no setup wizard, so without this bootstrap an
+    administrator would be stranded on the empty workspace selector.
+    """
+    if user.instance_role != InstanceRoleEnum.INSTANCE_ADMIN:
+        return
+    has_membership = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).first()
+    if has_membership:
+        return
+    workspace = Workspace(name="Default Workspace", description="Created for the first OIDC administrator")
+    db.add(workspace)
+    db.flush()
+    db.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=RoleEnum.ADMIN))
+
+
 def login_url(request: Request) -> tuple[str, str]:
     metadata = discovery()
     state = secrets.token_urlsafe(32)
@@ -156,5 +173,6 @@ def finish_login(request: Request, db: Session, code: str) -> str:
     roles = keycloak_roles(claims)
     user.instance_role = _mapped_instance_role(roles)
     _sync_workspace_role(db, user, roles)
+    _ensure_first_admin_workspace(db, user)
     db.commit()
     return create_access_token(subject=user.id)

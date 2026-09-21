@@ -739,6 +739,7 @@ async def _run_complete_phase(
             globals_updates={k: v for r in all_post for k, v in r.globals_updates.items()},
             environment_updates={k: v for r in all_post for k, v in r.environment_updates.items()},
             collection_var_updates={k: v for r in all_post for k, v in r.collection_var_updates.items()},
+            visualization=next((r.visualization for r in reversed(all_post) if r.visualization), None),
         )
         _persist_scope_changes(db, combined_post, collection_id, environment_id)
 

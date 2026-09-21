@@ -33,6 +33,7 @@ import { Suspense, lazy, memo, useMemo, useState, useEffect, useCallback } from 
 import { useTranslation } from "react-i18next";
 import { alpha, useTheme } from "@mui/material/styles";
 import JsonTreeView from "@/components/response/JsonTreeView";
+import VisualizationFrame from "@/components/response/VisualizationFrame";
 import type { ProxyResponse, SentRequestSnapshot } from "@/types";
 import { copyToClipboard } from "@/utils/clipboard";
 
@@ -197,6 +198,7 @@ interface ResponsePanelProps {
 
 function ResponsePanel({ response, sentRequest, responseTimestamp, onClearResponse }: ResponsePanelProps) {
   const { t } = useTranslation();
+  const visualization = response?.script_result?.visualization ?? null;
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [tab, setTab] = useState(0);
@@ -576,6 +578,7 @@ function ResponsePanel({ response, sentRequest, responseTimestamp, onClearRespon
         <Tab label={t("response.body")} />
         <Tab label={`${t("response.headers")} (${headerEntries.length})`} />
         <Tab label={t("response.sentRequest")} />
+        {visualization && <Tab icon={<Web sx={{ fontSize: 15 }} />} iconPosition="start" label={t("response.visualization", "Visualization")} />}
       </Tabs>
 
       {tab === 0 && (
@@ -1330,6 +1333,20 @@ function ResponsePanel({ response, sentRequest, responseTimestamp, onClearRespon
               )}
             </>
           )}
+        </Box>
+      )}
+
+      {tab === 3 && visualization && (
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+            borderRadius: 2,
+            border: `1px solid ${alpha(isDark ? "#8b949e" : "#64748b", 0.1)}`,
+          }}
+        >
+          <VisualizationFrame template={visualization.template} data={visualization.data} />
         </Box>
       )}
     </Box>

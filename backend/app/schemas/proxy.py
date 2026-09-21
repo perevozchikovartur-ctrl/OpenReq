@@ -19,6 +19,7 @@ class ScriptResultSchema(BaseModel):
     environment_updates: dict[str, str | None] = {}
     globals_updates: dict[str, str | None] = {}
     collection_var_updates: dict[str, str | None] = {}
+    visualization: dict[str, Any] | None = None
 
 
 class RequestSettings(BaseModel):

@@ -13,6 +13,7 @@ Supports:
   - pm.test("name", callback), pm.expect(value)
   - pm.sendRequest(url_or_config, callback)
   - pm.info.requestName, pm.info.iteration, pm.info.iterationCount
+  - pm.visualizer.set(template, data) for an isolated response visualization
   - Legacy: responseBody, responseTime, responseCode globals
   - Legacy: postman.setGlobalVariable / getGlobalVariable etc.
 """
@@ -280,6 +281,28 @@ class _PmInfo:
         self.eventName = "test"  # Postman sets "prerequest" or "test"
 
 
+class _PmVisualizer:
+    """Captures a declarative visualization for the frontend to render safely."""
+
+    MAX_TEMPLATE_SIZE = 250_000
+
+    def __init__(self):
+        self._value: dict[str, Any] | None = None
+
+    def set(self, template: str, data: Any = None) -> None:
+        if not isinstance(template, str):
+            raise TypeError("Visualizer template must be a string")
+        if len(template) > self.MAX_TEMPLATE_SIZE:
+            raise ValueError("Visualizer template is too large")
+        # Fail during script execution, rather than later while serializing the
+        # API response, if the supplied data cannot be represented as JSON.
+        json.dumps(data)
+        self._value = {"template": template, "data": data}
+
+    def get(self) -> dict[str, Any] | None:
+        return self._value
+
+
 class PostmanContext:
     """Top-level `pm` object available in script exec() namespace.
 
@@ -338,6 +361,7 @@ class PostmanContext:
         # Info
         self.info = _PmInfo(request_name, iteration, iteration_count)
         self.info.eventName = event_name
+        self.visualizer = _PmVisualizer()
 
     def test(self, name: str, callback: Any) -> None:
         """pm.test("name", callback) — Postman callback-style test.

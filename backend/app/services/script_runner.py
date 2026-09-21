@@ -533,6 +533,7 @@ def _to_result(ctx: ScriptContext, pm: Any = None) -> dict[str, Any]:
         for k, v in changes["local_updates"].items():
             if v is not None:
                 result["variables"][k] = v
+        result["visualization"] = pm.visualizer.get()
     return result
 
 

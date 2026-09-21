@@ -282,6 +282,7 @@ export interface ScriptResult {
   globals_updates?: Record<string, string | null>;
   environment_updates?: Record<string, string | null>;
   collection_var_updates?: Record<string, string | null>;
+  visualization?: { template: string; data: unknown } | null;
 }
 
 export interface WebSocketMessage {

@@ -407,9 +407,11 @@ export default function Login({ onLogin, mode, onToggleTheme }: LoginProps) {
 
         {oidcEnabled && (
           <>
-            <Typography variant="caption" display="block" textAlign="center" color="text.secondary" sx={{ my: 2 }}>
-              or
-            </Typography>
+            {localEnabled && (
+              <Typography variant="caption" display="block" textAlign="center" color="text.secondary" sx={{ my: 2 }}>
+                or
+              </Typography>
+            )}
             <Button fullWidth variant="outlined" size="large" startIcon={<LoginIcon />} onClick={handleOidcLogin}>
               Sign in with Single Sign-On
             </Button>

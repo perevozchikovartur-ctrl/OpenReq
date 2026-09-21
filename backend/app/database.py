@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 from pathlib import Path
 
@@ -78,6 +79,8 @@ def _run_migrations():
         ("users", "oidc_issuer", "VARCHAR(500)"),
         ("users", "oidc_subject", "VARCHAR(255)"),
         ("app_settings", "request_defaults", "JSON DEFAULT '{}'") ,
+        ("workspaces", "access_key", "VARCHAR(80)"),
+        ("workspace_members", "auth_source", "VARCHAR(20) DEFAULT 'manual'"),
     ]
     for table, column, col_type in migrations:
         if table in inspector.get_table_names():
@@ -86,6 +89,24 @@ def _run_migrations():
                 with engine.begin() as conn:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 logger.info("Added column %s.%s", table, column)
+
+    # Existing workspaces predate access keys. Give each a stable, URL-safe key
+    # so they can be addressed by Keycloak group paths immediately after upgrade.
+    if "workspaces" in inspector.get_table_names():
+        workspace_cols = {c["name"] for c in inspector.get_columns("workspaces")}
+        if "access_key" in workspace_cols:
+            with engine.begin() as conn:
+                rows = conn.execute(text("SELECT id, name FROM workspaces WHERE access_key IS NULL OR access_key = ''")).fetchall()
+                used = {row[0] for row in conn.execute(text("SELECT access_key FROM workspaces WHERE access_key IS NOT NULL")).fetchall()}
+                for workspace_id, name in rows:
+                    base = re.sub(r"[^a-z0-9-]+", "-", (name or "workspace").lower()).strip("-")[:70] or "workspace"
+                    key = base
+                    index = 2
+                    while key in used:
+                        key = f"{base[:70]}-{index}"
+                        index += 1
+                    used.add(key)
+                    conn.execute(text("UPDATE workspaces SET access_key = :key WHERE id = :id"), {"key": key, "id": workspace_id})
 
     # Drop orphaned team tables (FK order: team_members first, then teams)
     for table_name in ["team_members", "teams"]:

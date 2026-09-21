@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import re
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -14,6 +15,7 @@ router = APIRouter()
 
 class WorkspaceUpdate(BaseModel):
     name: str | None = None
+    access_key: str | None = Field(default=None, min_length=2, max_length=80)
     description: str | None = None
 
 
@@ -31,13 +33,23 @@ class MemberOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+def _normalize_access_key(value: str) -> str:
+    key = re.sub(r"[^a-z0-9-]+", "-", value.lower()).strip("-")
+    if len(key) < 2:
+        raise HTTPException(status_code=422, detail="Access key must contain at least two letters or digits")
+    return key[:80]
+
+
 @router.post("/", response_model=WorkspaceOut, status_code=status.HTTP_201_CREATED)
 def create_workspace(
     payload: WorkspaceCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    ws = Workspace(name=payload.name, description=payload.description)
+    access_key = _normalize_access_key(payload.access_key or payload.name)
+    if db.query(Workspace).filter(Workspace.access_key == access_key).first():
+        raise HTTPException(status_code=409, detail="Workspace access key already exists")
+    ws = Workspace(name=payload.name, access_key=access_key, description=payload.description)
     db.add(ws)
     db.flush()
     member = WorkspaceMember(workspace_id=ws.id, user_id=current_user.id, role=RoleEnum.ADMIN)
@@ -118,7 +130,14 @@ def update_workspace(
     ws = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    values = payload.model_dump(exclude_unset=True)
+    if "access_key" in values:
+        key = _normalize_access_key(values["access_key"] or "")
+        existing = db.query(Workspace).filter(Workspace.access_key == key, Workspace.id != workspace_id).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="Workspace access key already exists")
+        values["access_key"] = key
+    for field, value in values.items():
         setattr(ws, field, value)
     db.commit()
     db.refresh(ws)

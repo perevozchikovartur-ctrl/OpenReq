@@ -42,6 +42,7 @@ export default function WorkspaceManager({
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newAccessKey, setNewAccessKey] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,10 +53,12 @@ export default function WorkspaceManager({
     try {
       const { data: ws } = await workspacesApi.create({
         name: newName.trim(),
+        access_key: newAccessKey.trim() || undefined,
         description: newDesc.trim() || undefined,
       });
       setNewName("");
       setNewDesc("");
+      setNewAccessKey("");
       setShowCreate(false);
       onRefresh?.();
       // Auto-switch to new workspace
@@ -124,6 +127,14 @@ export default function WorkspaceManager({
                   onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
                 />
                 <TextField
+                  label="Access key"
+                  value={newAccessKey}
+                  onChange={(e) => setNewAccessKey(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                  helperText="Used for Keycloak groups; defaults to a key derived from the workspace name."
+                  fullWidth
+                  size="small"
+                />
+                <TextField
                   label={t("common.description")}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
@@ -154,6 +165,9 @@ export default function WorkspaceManager({
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {ws?.description || "—"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                    Access key: {ws?.access_key || "—"}
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                   {currentWorkspaceId === selectedId ? (

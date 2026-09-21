@@ -13,6 +13,7 @@ class Workspace(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String(200), nullable=False)
+    access_key: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True)
     description: Mapped[str | None] = mapped_column(String(500))
     globals: Mapped[dict | None] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -30,6 +31,7 @@ class WorkspaceMember(Base):
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id", ondelete="CASCADE"))
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     role: Mapped[RoleEnum] = mapped_column(SAEnum(RoleEnum), default=RoleEnum.VIEWER)
+    auth_source: Mapped[str] = mapped_column(String(20), default="manual")
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     workspace: Mapped["Workspace"] = relationship(back_populates="members")

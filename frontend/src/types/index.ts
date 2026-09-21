@@ -83,6 +83,7 @@ export interface Token {
 export interface Workspace {
   id: string;
   name: string;
+  access_key: string | null;
   description: string | null;
   globals: Record<string, string> | null;
 }

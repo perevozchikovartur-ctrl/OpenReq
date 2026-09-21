@@ -118,6 +118,21 @@ The workspace map creates or updates membership in the configured workspace;
 the highest mapped workspace role wins. Set `LOCAL_AUTH_ENABLED=false` to
 disable password-based sign-in and registration after OIDC has been verified.
 
+For access to multiple workspaces, use Keycloak's **Group Membership** mapper
+on the OpenReq client and add the `groups` claim to the access token. OpenReq
+recognizes these full group paths:
+
+```text
+/openreq/workspaces/<workspace-access-key>/admin
+/openreq/workspaces/<workspace-access-key>/editor
+/openreq/workspaces/<workspace-access-key>/viewer
+```
+
+Each workspace has a unique `access_key` visible in OpenReq's workspace dialog.
+Unknown keys are ignored; groups never create workspaces automatically. OIDC
+memberships are synchronized on login, while manually assigned memberships are
+left untouched.
+
 ---
 
 **Tech Stack**

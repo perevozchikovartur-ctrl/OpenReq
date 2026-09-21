@@ -1,5 +1,6 @@
 """Minimal OpenID Connect authorization-code flow (Keycloak-compatible)."""
 import json
+import re
 import secrets
 from functools import lru_cache
 from urllib.parse import urlencode
@@ -98,6 +99,50 @@ def _sync_workspace_role(db: Session, user: User, roles: set[str]) -> None:
         db.add(WorkspaceMember(workspace_id=workspace_id, user_id=user.id, role=desired))
 
 
+_WORKSPACE_GROUP = re.compile(r"^/openreq/workspaces/([a-z0-9][a-z0-9-]{0,79})/(admin|editor|viewer)$")
+_ROLE_RANK = {RoleEnum.VIEWER: 1, RoleEnum.EDITOR: 2, RoleEnum.ADMIN: 3}
+
+
+def _sync_workspace_groups(db: Session, user: User, claims: dict) -> None:
+    """Synchronize memberships declared by Keycloak Group Membership mapper.
+
+    Only records created by this integration are changed or removed. Manual
+    memberships remain under OpenReq's control and are never downgraded by SSO.
+    Unknown group keys are deliberately ignored: Keycloak must not create
+    workspaces as a side effect of a typo or an unexpected group assignment.
+    """
+    requested: dict[str, RoleEnum] = {}
+    for group in claims.get("groups", []) or []:
+        if not isinstance(group, str):
+            continue
+        match = _WORKSPACE_GROUP.match(group)
+        if not match:
+            continue
+        key, role_name = match.groups()
+        role = RoleEnum(role_name)
+        if key not in requested or _ROLE_RANK[role] > _ROLE_RANK[requested[key]]:
+            requested[key] = role
+
+    workspaces = db.query(Workspace).filter(Workspace.access_key.in_(requested.keys())).all() if requested else []
+    by_key = {workspace.access_key: workspace for workspace in workspaces}
+    active_workspace_ids: set[str] = set()
+    for key, role in requested.items():
+        workspace = by_key.get(key)
+        if not workspace:
+            continue
+        active_workspace_ids.add(workspace.id)
+        member = db.query(WorkspaceMember).filter_by(workspace_id=workspace.id, user_id=user.id).first()
+        if member is None:
+            db.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=role, auth_source="oidc"))
+        elif member.auth_source == "oidc":
+            member.role = role
+
+    oidc_memberships = db.query(WorkspaceMember).filter_by(user_id=user.id, auth_source="oidc").all()
+    for member in oidc_memberships:
+        if member.workspace_id not in active_workspace_ids:
+            db.delete(member)
+
+
 def _ensure_first_admin_workspace(db: Session, user: User) -> None:
     """Give the first OIDC instance admin a usable workspace on a fresh install.
 
@@ -109,7 +154,7 @@ def _ensure_first_admin_workspace(db: Session, user: User) -> None:
     has_membership = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).first()
     if has_membership:
         return
-    workspace = Workspace(name="Default Workspace", description="Created for the first OIDC administrator")
+    workspace = Workspace(name="Default Workspace", access_key="default-workspace", description="Created for the first OIDC administrator")
     db.add(workspace)
     db.flush()
     db.add(WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=RoleEnum.ADMIN))
@@ -184,6 +229,7 @@ def finish_login(request: Request, db: Session, code: str) -> str:
     roles = keycloak_roles(access_claims)
     user.instance_role = _mapped_instance_role(roles)
     _sync_workspace_role(db, user, roles)
+    _sync_workspace_groups(db, user, access_claims)
     _ensure_first_admin_workspace(db, user)
     db.commit()
     return create_access_token(subject=user.id)

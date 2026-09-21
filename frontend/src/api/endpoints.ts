@@ -105,9 +105,9 @@ export const appSettingsApi = {
 export const workspacesApi = {
   list: () => client.get<Workspace[]>("/workspaces/"),
   get: (id: string) => client.get<Workspace>(`/workspaces/${id}`),
-  create: (data: { name: string; description?: string }) =>
+  create: (data: { name: string; access_key?: string; description?: string }) =>
     client.post<Workspace>("/workspaces/", data),
-  update: (id: string, data: { name?: string; description?: string }) =>
+  update: (id: string, data: { name?: string; access_key?: string; description?: string }) =>
     client.patch<Workspace>(`/workspaces/${id}`, data),
   delete: (id: string) => client.delete(`/workspaces/${id}`),
   listMembers: (workspaceId: string) =>

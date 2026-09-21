@@ -14,6 +14,12 @@ import {
   IconButton,
   Tooltip,
   Portal,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import { Send, Stop, Save, Dns, NetworkPing, Code } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
@@ -112,6 +118,16 @@ export default function RequestBuilder(props: RequestBuilderProps) {
 
   const activeParamsCount = props.queryParams.filter((p) => p.enabled && p.key).length;
   const activeHeadersCount = props.headers.filter((h) => h.enabled && h.key).length;
+  const pathParamNames = useMemo(() => {
+    const names: string[] = [];
+    const matcher = /(?<!\{)\{([A-Za-z_][A-Za-z0-9_-]*)\}(?!\})/g;
+    let match: RegExpExecArray | null;
+    while ((match = matcher.exec(props.url)) !== null) {
+      const name = match[1];
+      if (name && !names.includes(name)) names.push(name);
+    }
+    return names;
+  }, [props.url]);
 
   const activeEnvId = props.envOverrideId ?? props.selectedEnvId;
   const activeEnv = props.environments.find((e) => e.id === activeEnvId);
@@ -243,7 +259,6 @@ export default function RequestBuilder(props: RequestBuilderProps) {
             url={props.url}
             pathParams={props.pathParams}
             onUrlChange={props.onUrlChange}
-            onPathParamsChange={props.onPathParamsChange}
             onSend={props.onSend}
             placeholder={t("request.url")}
             variableGroups={variableGroups}
@@ -447,6 +462,18 @@ export default function RequestBuilder(props: RequestBuilderProps) {
         <Tab
           label={
             <Badge
+              badgeContent={pathParamNames.length}
+              color="primary"
+              invisible={pathParamNames.length === 0}
+              sx={{ "& .MuiBadge-badge": { fontSize: 10, minWidth: 16, height: 16 } }}
+            >
+              {t("request.pathParams", "Path Params")}
+            </Badge>
+          }
+        />
+        <Tab
+          label={
+            <Badge
               badgeContent={activeHeadersCount}
               color="primary"
               sx={{ "& .MuiBadge-badge": { fontSize: 10, minWidth: 16, height: 16 } }}
@@ -474,6 +501,44 @@ export default function RequestBuilder(props: RequestBuilderProps) {
         )}
 
         {tab === 1 && (
+          <Box sx={{ px: 1, py: 1.5 }}>
+            {pathParamNames.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
+                {t("request.noPathParams", "Add parameters to the URL as {name} to edit their values here.")}
+              </Typography>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t("common.key", "Key")}</TableCell>
+                    <TableCell>{t("common.value", "Value")}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pathParamNames.map((name) => (
+                    <TableRow key={name}>
+                      <TableCell sx={{ width: "40%", fontFamily: "monospace" }}>{name}</TableCell>
+                      <TableCell>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={props.pathParams[name] ?? ""}
+                          onChange={(event) => props.onPathParamsChange({
+                            ...props.pathParams,
+                            [name]: event.target.value,
+                          })}
+                          placeholder={t("common.value", "Value")}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Box>
+        )}
+
+        {tab === 2 && (
           <KeyValueEditor
             pairs={props.headers}
             onChange={props.onHeadersChange}
@@ -484,7 +549,7 @@ export default function RequestBuilder(props: RequestBuilderProps) {
           />
         )}
 
-        {tab === 2 && (
+        {tab === 3 && (
           <BodyEditor
             bodyType={props.bodyType}
             body={props.body}
@@ -511,7 +576,7 @@ export default function RequestBuilder(props: RequestBuilderProps) {
           />
         )}
 
-        {tab === 3 && (
+        {tab === 4 && (
           <AuthEditor
             authType={props.authType}
             bearerToken={props.bearerToken}
@@ -534,7 +599,7 @@ export default function RequestBuilder(props: RequestBuilderProps) {
           />
         )}
 
-        {tab === 4 && (
+        {tab === 5 && (
           <RequestSettingsEditor
             settings={props.requestSettings ?? defaultRequestSettings}
             onChange={props.onRequestSettingsChange}

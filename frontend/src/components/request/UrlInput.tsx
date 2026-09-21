@@ -32,7 +32,6 @@ interface UrlInputProps {
   url: string;
   pathParams: Record<string, string>;
   onUrlChange: (url: string) => void;
-  onPathParamsChange: (params: Record<string, string>) => void;
   onSend: () => void;
   placeholder?: string;
   endAdornment?: React.ReactNode;
@@ -131,12 +130,6 @@ const UrlInput = forwardRef<UrlInputHandle, UrlInputProps>(function UrlInput(
   const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
-  const [inlineEdit, setInlineEdit] = useState<{
-    paramName: string;
-    beforeUrl: string;
-    removedUrl: string;
-  } | null>(null);
-
   const lastCursorPos = useRef<number | null>(null);
 
   // Autocomplete state (typing {{ trigger)
@@ -222,39 +215,6 @@ const UrlInput = forwardRef<UrlInputHandle, UrlInputProps>(function UrlInput(
 
     return anyReplaced ? resolved : null;
   }, [url, pathParams, resolvedVariables, segments]);
-
-  const handleClick = useCallback(
-    (_e: React.MouseEvent<HTMLDivElement>) => {
-      const hasParams = segments.some((s) => s.type === "param");
-      if (!hasParams) return;
-      setTimeout(() => {
-        const pos = inputRef.current?.selectionStart ?? 0;
-        lastCursorPos.current = pos;
-        let offset = 0;
-        for (const seg of segments) {
-          const end = offset + seg.text.length;
-          if (seg.type === "param" && pos >= offset && pos <= end) {
-            const beforeUrl = url;
-            const removedUrl =
-              beforeUrl.slice(0, offset) + beforeUrl.slice(end);
-            setInlineEdit({
-              paramName: seg.paramName!,
-              beforeUrl,
-              removedUrl,
-            });
-            onUrlChange(removedUrl);
-            requestAnimationFrame(() => {
-              inputRef.current?.focus();
-              inputRef.current?.setSelectionRange(offset, offset);
-            });
-            return;
-          }
-          offset = end;
-        }
-      }, 10);
-    },
-    [segments, url, onUrlChange],
-  );
 
   // ── Autocomplete logic ──
   const flatVariables = useMemo(() => {
@@ -517,13 +477,6 @@ const UrlInput = forwardRef<UrlInputHandle, UrlInputProps>(function UrlInput(
           value={url}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onClick={handleClick}
-          onBlur={() => {
-            if (inlineEdit && url === inlineEdit.removedUrl) {
-              onUrlChange(inlineEdit.beforeUrl);
-            }
-            if (inlineEdit) setInlineEdit(null);
-          }}
           inputRef={inputRef}
           sx={{
             "& .MuiOutlinedInput-root": {

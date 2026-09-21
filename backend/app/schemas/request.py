@@ -15,6 +15,7 @@ class RequestCreate(BaseModel):
     auth_type: AuthType = AuthType.NONE
     auth_config: dict | None = None
     query_params: dict[str, str] | None = None
+    path_params: dict[str, str] | None = None
     pre_request_script: str | None = None
     post_response_script: str | None = None
     form_data: list[dict[str, Any]] | None = None
@@ -32,6 +33,7 @@ class RequestUpdate(BaseModel):
     auth_type: AuthType | None = None
     auth_config: dict | None = None
     query_params: dict[str, str] | None = None
+    path_params: dict[str, str] | None = None
     pre_request_script: str | None = None
     post_response_script: str | None = None
     form_data: list[dict[str, Any]] | None = None
@@ -50,6 +52,7 @@ class RequestOut(BaseModel):
     auth_type: AuthType
     auth_config: dict | None
     query_params: dict | None
+    path_params: dict | None
     pre_request_script: str | None
     post_response_script: str | None
     form_data: list | None = None

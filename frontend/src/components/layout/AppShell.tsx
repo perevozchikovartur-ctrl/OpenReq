@@ -771,6 +771,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         auth_type: srcReq.auth_type,
         auth_config: srcReq.auth_config,
         query_params: srcReq.query_params,
+        path_params: srcReq.path_params,
         pre_request_script: srcReq.pre_request_script,
         post_response_script: srcReq.post_response_script,
         form_data: srcReq.form_data as any,
@@ -839,6 +840,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         auth_type: srcReq.auth_type,
         auth_config: srcReq.auth_config,
         query_params: srcReq.query_params,
+        path_params: srcReq.path_params,
         pre_request_script: srcReq.pre_request_script,
         post_response_script: srcReq.post_response_script,
         form_data: srcReq.form_data as any,
@@ -1352,6 +1354,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         body_type: isGraphQL ? "graphql" : tab.bodyType,
         auth_type: tab.authType, auth_config: auth_config as Record<string, string>,
         query_params: queryParams,
+        path_params: tab.pathParams,
         pre_request_script: tab.preRequestScript || null,
         post_response_script: tab.postResponseScript || null,
         form_data: form_data as any,
@@ -1485,6 +1488,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         body_type: isGraphQL ? "graphql" : tab.bodyType,
         auth_type: tab.authType, auth_config: auth_config as Record<string, string>,
         query_params: queryParams,
+        path_params: tab.pathParams,
         pre_request_script: tab.preRequestScript || null,
         post_response_script: tab.postResponseScript || null,
         form_data: form_data as any,
@@ -1538,6 +1542,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         }));
         tab.queryParams.push(newPair());
       }
+      tab.pathParams = req.path_params ?? {};
       if (req.body) tab.body = req.body;
       if (req.body_type) tab.bodyType = req.body_type as BodyType;
       if (req.auth_type) tab.authType = req.auth_type as AuthType;
@@ -1775,6 +1780,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
         auth_type: "none",
         auth_config: null as any,
         query_params: {},
+        path_params: {},
         protocol,
       });
       await collectionsApi.createItem(collectionId, { name, request_id: req.id, parent_id: folderId || undefined });

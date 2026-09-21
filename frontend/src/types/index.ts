@@ -144,6 +144,7 @@ export interface ApiRequest {
   auth_type: AuthType;
   auth_config: Record<string, string> | null;
   query_params: Record<string, string> | null;
+  path_params: Record<string, string> | null;
   pre_request_script: string | null;
   post_response_script: string | null;
   form_data: FormDataItemSaved[] | null;

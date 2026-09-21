@@ -58,6 +58,7 @@ def _run_migrations():
         ("ai_conversations", "is_shared", "BOOLEAN DEFAULT 0"),
         ("ai_conversations", "workspace_id", "VARCHAR(36)"),
         ("requests", "protocol", "VARCHAR(20) DEFAULT 'http'"),
+        ("requests", "path_params", "JSON DEFAULT '{}'"),
         ("workspaces", "globals", "TEXT DEFAULT '{}'"),
         ("collection_items", "auth_type", "VARCHAR(20)"),
         ("collection_items", "auth_config", "TEXT"),

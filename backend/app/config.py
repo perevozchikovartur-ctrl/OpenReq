@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     OIDC_ISSUER_URL: str | None = None
     OIDC_CLIENT_ID: str | None = None
     OIDC_CLIENT_SECRET: str | None = None
+    # Optional PEM bundle with the CA that issued Keycloak's certificate.
+    # Useful when Keycloak uses an internal PKI.
+    OIDC_CA_BUNDLE: str | None = None
     # Client whose resource_access roles are authoritative for OpenReq. Defaults
     # to OIDC_CLIENT_ID, so unrelated Keycloak clients cannot grant access.
     OIDC_ROLE_CLIENT_ID: str | None = None

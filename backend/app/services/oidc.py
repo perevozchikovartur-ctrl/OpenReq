@@ -21,15 +21,21 @@ def is_enabled() -> bool:
     return bool(settings.OIDC_ISSUER_URL and settings.OIDC_CLIENT_ID)
 
 
+def _http_client(timeout: float) -> httpx.Client:
+    """Create an OIDC HTTP client with the optional corporate CA bundle."""
+    return httpx.Client(timeout=timeout, verify=settings.OIDC_CA_BUNDLE or True)
+
+
 @lru_cache(maxsize=1)
 def discovery() -> dict:
     if not is_enabled():
         raise HTTPException(status_code=404, detail="OIDC is not configured")
     url = settings.OIDC_ISSUER_URL.rstrip("/") + "/.well-known/openid-configuration"
     try:
-        response = httpx.get(url, timeout=10)
-        response.raise_for_status()
-        return response.json()
+        with _http_client(timeout=10) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            return response.json()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"OIDC discovery failed: {exc}") from exc
 
@@ -37,9 +43,10 @@ def discovery() -> dict:
 @lru_cache(maxsize=1)
 def jwks() -> dict:
     try:
-        response = httpx.get(discovery()["jwks_uri"], timeout=10)
-        response.raise_for_status()
-        return response.json()
+        with _http_client(timeout=10) as client:
+            response = client.get(discovery()["jwks_uri"])
+            response.raise_for_status()
+            return response.json()
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"OIDC key discovery failed: {exc}") from exc
 
@@ -168,9 +175,10 @@ def finish_login(request: Request, db: Session, code: str) -> str:
     if settings.OIDC_CLIENT_SECRET:
         body["client_secret"] = settings.OIDC_CLIENT_SECRET
     try:
-        response = httpx.post(metadata["token_endpoint"], data=body, timeout=15)
-        response.raise_for_status()
-        token_data = response.json()
+        with _http_client(timeout=15) as client:
+            response = client.post(metadata["token_endpoint"], data=body)
+            response.raise_for_status()
+            token_data = response.json()
         # Keycloak may include an at_hash claim in the ID token. python-jose
         # validates it only when the access token from the same code exchange is
         # supplied explicitly.

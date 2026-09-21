@@ -103,6 +103,17 @@ OIDC client configured for authorization-code flow. Register
 valid Keycloak redirect URI. Set `OIDC_FRONTEND_URL` when the frontend is on a
 different origin.
 
+If Keycloak uses a certificate issued by an internal CA, keep TLS verification
+enabled and provide that CA as a PEM bundle. Mount it into the container and
+set `OIDC_CA_BUNDLE` to its **container** path, for example:
+
+```bash
+docker run --rm -p 8000:8000 --env-file .env \
+  -v "$PWD/keycloak-ca.pem:/etc/openreq/keycloak-ca.pem:ro" \
+  -e OIDC_CA_BUNDLE=/etc/openreq/keycloak-ca.pem \
+  openreq:oidc-test
+```
+
 Keycloak **client roles** are mapped at each login with JSON environment
 variables. Roles are read from `resource_access.<OIDC_ROLE_CLIENT_ID>.roles`;
 when `OIDC_ROLE_CLIENT_ID` is unset it uses `OIDC_CLIENT_ID`. Example:

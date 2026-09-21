@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AppSettingsOut(BaseModel):
@@ -9,6 +9,7 @@ class AppSettingsOut(BaseModel):
     ollama_base_url: str | None = None
     ollama_model: str | None = None
     has_ollama_url: bool = False
+    request_defaults: dict = Field(default_factory=dict)
 
     model_config = {"from_attributes": True}
 
@@ -19,3 +20,4 @@ class AppSettingsUpdate(BaseModel):
     openai_model: str | None = None
     ollama_base_url: str | None = None
     ollama_model: str | None = None
+    request_defaults: dict | None = None

@@ -16,6 +16,7 @@ import type {
   PostmanImportPreview,
   PostmanImportResult,
   AppSettings,
+  RequestSettings,
   OllamaModel,
   OpenAIModel,
   CollectionRunSummary,
@@ -90,7 +91,9 @@ export const appSettingsApi = {
     openai_model?: string;
     ollama_base_url?: string;
     ollama_model?: string;
+    request_defaults?: RequestSettings;
   }) => client.patch<AppSettings>("/settings/", data),
+  getRequestDefaults: () => client.get<{ request_defaults: Record<string, unknown> }>("/settings/request-defaults"),
   getOllamaModels: (baseUrl?: string) =>
     client.get<OllamaModel[]>("/settings/ollama-models", {
       params: baseUrl ? { base_url: baseUrl } : undefined,

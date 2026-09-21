@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column, Session
 
 from app.database import Base
@@ -16,6 +16,7 @@ class AppSettings(Base):
     ollama_base_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     ollama_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
     openai_model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    request_defaults: Mapped[dict | None] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 

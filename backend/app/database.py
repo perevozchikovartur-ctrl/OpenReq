@@ -77,6 +77,7 @@ def _run_migrations():
         ("users", "auth_provider", "VARCHAR(30) DEFAULT 'local'"),
         ("users", "oidc_issuer", "VARCHAR(500)"),
         ("users", "oidc_subject", "VARCHAR(255)"),
+        ("app_settings", "request_defaults", "JSON DEFAULT '{}'") ,
     ]
     for table, column, col_type in migrations:
         if table in inspector.get_table_names():

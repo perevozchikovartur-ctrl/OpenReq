@@ -51,6 +51,7 @@ import {
   environmentsApi,
   workspacesApi,
   importExportApi,
+  appSettingsApi,
 } from "@/api/endpoints";
 import { useVariableGroups } from "@/hooks/useVariableGroups";
 import { useLearningMode } from "@/hooks/useLearningMode";
@@ -87,6 +88,7 @@ let tabCounter = 1;
 const TABS_STORAGE_KEY = "openreq-tabs";
 const ACTIVE_TAB_STORAGE_KEY = "openreq-active-tab";
 const VIEW_STORAGE_KEY = "openreq-view";
+let instanceRequestDefaults = { ...defaultRequestSettings };
 
 const defaultOAuthConfig: OAuthConfig = {
   grantType: "authorization_code",
@@ -178,7 +180,7 @@ function createNewTab(protocol: Protocol = "http"): RequestTab {
     apiKeyValue: "",
     apiKeyPlacement: "header",
     oauthConfig: { ...defaultOAuthConfig },
-    requestSettings: { ...defaultRequestSettings },
+    requestSettings: { ...instanceRequestDefaults },
     pathParams: {},
     preRequestScript: "",
     postResponseScript: "",
@@ -276,6 +278,21 @@ type View = "request" | "settings";
 
 export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShellProps) {
   const { t } = useTranslation();
+
+  const loadInstanceRequestDefaults = useCallback(async () => {
+    try {
+      const { data } = await appSettingsApi.getRequestDefaults();
+      instanceRequestDefaults = { ...defaultRequestSettings, ...(data.request_defaults || {}) };
+    } catch {
+      // Fall back to built-in defaults if the server is temporarily unavailable.
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInstanceRequestDefaults();
+    window.addEventListener("openreq-request-defaults-updated", loadInstanceRequestDefaults);
+    return () => window.removeEventListener("openreq-request-defaults-updated", loadInstanceRequestDefaults);
+  }, [loadInstanceRequestDefaults]);
   const proxyModeValue = useProxyModeProvider();
   const { proxyMode, localChannel } = proxyModeValue;
   const { learningMode } = useLearningMode();

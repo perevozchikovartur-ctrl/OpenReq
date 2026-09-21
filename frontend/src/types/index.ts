@@ -41,6 +41,7 @@ export interface AppSettings {
   ollama_base_url: string | null;
   ollama_model: string | null;
   has_ollama_url: boolean;
+  request_defaults: Partial<RequestSettings>;
 }
 
 export interface OllamaModel {

@@ -37,6 +37,7 @@ def _build_settings_out(s) -> AppSettingsOut:
         ollama_base_url=s.ollama_base_url,
         ollama_model=s.ollama_model,
         has_ollama_url=bool(s.ollama_base_url),
+        request_defaults=s.request_defaults or {},
     )
 
 
@@ -48,6 +49,15 @@ def get_app_settings(
     require_instance_admin(current_user)
     s = get_or_create_settings(db)
     return _build_settings_out(s)
+
+
+@router.get("/request-defaults")
+def get_request_defaults(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Instance defaults are readable by all users so new tabs behave consistently."""
+    return {"request_defaults": get_or_create_settings(db).request_defaults or {}}
 
 
 @router.patch("/", response_model=AppSettingsOut)
@@ -68,6 +78,8 @@ def update_app_settings(
         s.ollama_model = payload.ollama_model if payload.ollama_model else None
     if payload.openai_model is not None:
         s.openai_model = payload.openai_model if payload.openai_model else None
+    if payload.request_defaults is not None:
+        s.request_defaults = payload.request_defaults
     db.commit()
     db.refresh(s)
     return _build_settings_out(s)

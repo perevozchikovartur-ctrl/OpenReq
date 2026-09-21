@@ -51,8 +51,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { alpha, useTheme } from "@mui/material/styles";
 import { appSettingsApi, usersApi } from "@/api/endpoints";
+import RequestSettingsEditor from "@/components/request/RequestSettingsEditor";
 import { useLearningMode } from "@/hooks/useLearningMode";
-import type { User, OllamaModel, OpenAIModel } from "@/types";
+import { defaultRequestSettings, type User, type OllamaModel, type OpenAIModel, type RequestSettings } from "@/types";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -71,13 +72,11 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const isOidcUser = user.auth_provider === "oidc";
+  const isInstanceAdmin = user.instance_role === "instance_admin";
   const { learningMode, setLearningMode } = useLearningMode();
-  const [proxyTimeout, setProxyTimeout] = useState(
-    () => localStorage.getItem("openreq-proxy-timeout") || "30"
-  );
-  const [followRedirects, setFollowRedirects] = useState(
-    () => localStorage.getItem("openreq-follow-redirects") !== "false"
-  );
+  const [requestDefaults, setRequestDefaults] = useState<RequestSettings>({ ...defaultRequestSettings });
+  const [requestDefaultsSaving, setRequestDefaultsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   // AI provider state
@@ -133,6 +132,7 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
         if (data.openai_model) setOpenaiModel(data.openai_model);
         if (data.ollama_base_url) setOllamaBaseUrl(data.ollama_base_url);
         if (data.ollama_model) setOllamaModel(data.ollama_model);
+        setRequestDefaults({ ...defaultRequestSettings, ...(data.request_defaults || {}) });
       })
       .catch(() => {});
   }, []);
@@ -150,8 +150,8 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
   }, []);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (isInstanceAdmin) loadUsers();
+  }, [isInstanceAdmin, loadUsers]);
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
@@ -164,24 +164,17 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
     setTimeout(() => setSaved(false), 2000);
   }, []);
 
-  const handleProxyTimeoutChange = useCallback((val: string) => {
-    setProxyTimeout(val);
-    localStorage.setItem("openreq-proxy-timeout", val);
-  }, []);
-
-  const handleFollowRedirectsChange = useCallback((val: boolean) => {
-    setFollowRedirects(val);
-    localStorage.setItem("openreq-follow-redirects", String(val));
-    showSavedFlash();
-  }, [showSavedFlash]);
-
-  // Debounced save for proxy timeout (fires after user stops typing)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      localStorage.setItem("openreq-proxy-timeout", proxyTimeout);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [proxyTimeout]);
+  const handleSaveRequestDefaults = async () => {
+    setRequestDefaultsSaving(true);
+    try {
+      const { data } = await appSettingsApi.update({ request_defaults: requestDefaults });
+      setRequestDefaults({ ...defaultRequestSettings, ...(data.request_defaults || {}) });
+      window.dispatchEvent(new Event("openreq-request-defaults-updated"));
+      showSavedFlash();
+    } finally {
+      setRequestDefaultsSaving(false);
+    }
+  };
 
   const handleSaveKey = async () => {
     if (!openaiKey.trim()) return;
@@ -441,8 +434,8 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
             </Box>
           </Paper>
 
-          {/* Request Defaults */}
-          <Paper variant="outlined" sx={sectionStyle}>
+          {/* Instance-wide defaults applied to every new request tab. */}
+          {isInstanceAdmin && <Paper variant="outlined" sx={sectionStyle}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
               <Tune sx={{ fontSize: 20, color: "primary.main" }} />
               <Typography variant="subtitle1" fontWeight={600}>
@@ -450,26 +443,11 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
               </Typography>
             </Box>
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <TextField
-                label={t("settings.proxyTimeout")}
-                type="number"
-                size="small"
-                value={proxyTimeout}
-                onChange={(e) => handleProxyTimeoutChange(e.target.value)}
-                sx={{ maxWidth: 200 }}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={followRedirects}
-                    onChange={(e) => handleFollowRedirectsChange(e.target.checked)}
-                  />
-                }
-                label={t("settings.followRedirects")}
-              />
-            </Box>
-          </Paper>
+            <RequestSettingsEditor settings={requestDefaults} onChange={setRequestDefaults} />
+            <Button variant="contained" onClick={handleSaveRequestDefaults} disabled={requestDefaultsSaving} sx={{ mt: 2 }}>
+              {t("common.save")}
+            </Button>
+          </Paper>}
 
           {/* AI Integration */}
           <Paper variant="outlined" sx={sectionStyle}>
@@ -765,8 +743,8 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
             </Box>
           </Paper>
 
-          {/* Password Change */}
-          <Paper variant="outlined" sx={sectionStyle}>
+          {/* OIDC passwords are owned by the identity provider, not OpenReq. */}
+          {!isOidcUser && <Paper variant="outlined" sx={sectionStyle}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
               <Lock sx={{ fontSize: 20, color: "primary.main" }} />
               <Typography variant="subtitle1" fontWeight={600}>
@@ -819,12 +797,12 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
                 {t("settings.passwordReset")}
               </Button>
             </Box>
-          </Paper>
+          </Paper>}
 
         </Box>
 
         {/* Right column: User management */}
-        <Box sx={{ flex: "1 1 380px", minWidth: 0 }}>
+        {isInstanceAdmin && <Box sx={{ flex: "1 1 380px", minWidth: 0 }}>
           <Paper variant="outlined" sx={{ ...sectionStyle, height: "fit-content" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
               <PeopleAlt sx={{ fontSize: 20, color: "primary.main" }} />
@@ -954,7 +932,7 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
               </TableContainer>
             )}
           </Paper>
-        </Box>
+        </Box>}
       </Box>
 
       {/* Delete user confirmation dialog */}

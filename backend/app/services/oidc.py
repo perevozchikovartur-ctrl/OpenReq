@@ -148,6 +148,17 @@ def finish_login(request: Request, db: Session, code: str) -> str:
             audience=settings.OIDC_CLIENT_ID, issuer=settings.OIDC_ISSUER_URL,
             access_token=token_data.get("access_token"),
         )
+        # Keycloak client roles are normally present in the access token, not
+        # necessarily in the ID token. Verify the access token independently
+        # before using it for authorization decisions. Keycloak may omit this
+        # client from aud while still recording it as azp, hence audience is
+        # intentionally not enforced here; azp is checked below instead.
+        access_claims = jwt.decode(
+            token_data["access_token"], jwks(), algorithms=["RS256", "ES256"],
+            issuer=settings.OIDC_ISSUER_URL, options={"verify_aud": False},
+        )
+        if access_claims.get("azp") != settings.OIDC_CLIENT_ID:
+            raise HTTPException(status_code=401, detail="OIDC access token was not issued for this client")
     except (KeyError, JWTError, httpx.HTTPError) as exc:
         raise HTTPException(status_code=401, detail=f"OIDC authentication failed: {exc}") from exc
 
@@ -170,7 +181,7 @@ def finish_login(request: Request, db: Session, code: str) -> str:
         user.email = email
         user.full_name = claims.get("name") or user.full_name
 
-    roles = keycloak_roles(claims)
+    roles = keycloak_roles(access_claims)
     user.instance_role = _mapped_instance_role(roles)
     _sync_workspace_role(db, user, roles)
     _ensure_first_admin_workspace(db, user)

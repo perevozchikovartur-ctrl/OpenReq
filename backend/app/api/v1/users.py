@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.security import hash_password, verify_password
+from app.core.rbac import require_instance_admin
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import UserOut, UserUpdate, PasswordChange, UserAdminUpdate
+from app.schemas.user import UserOut, UserUpdate, PasswordChange, UserAdminUpdate, AdminPasswordReset
 
 router = APIRouter()
 
@@ -49,6 +50,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     return db.query(User).order_by(User.created_at).all()
 
 
@@ -59,6 +61,7 @@ def admin_update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -75,6 +78,7 @@ def delete_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     if user_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -86,3 +90,21 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
+
+
+@router.put("/{user_id}/password")
+def admin_reset_password(
+    user_id: str,
+    payload: AdminPasswordReset,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_instance_admin(current_user)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.auth_provider == "oidc":
+        raise HTTPException(status_code=400, detail="Password is managed by the identity provider")
+    user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}

@@ -9,6 +9,7 @@ from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.models.app_settings import get_or_create_settings
+from app.core.rbac import require_instance_admin
 from app.schemas.app_settings import AppSettingsOut, AppSettingsUpdate
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ def get_app_settings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     s = get_or_create_settings(db)
     return _build_settings_out(s)
 
@@ -54,6 +56,7 @@ def update_app_settings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     s = get_or_create_settings(db)
     if payload.openai_api_key is not None:
         s.openai_api_key = payload.openai_api_key if payload.openai_api_key else None
@@ -76,6 +79,7 @@ def get_ollama_models(
     current_user: User = Depends(get_current_user),
 ):
     """Fetch available models from an Ollama server."""
+    require_instance_admin(current_user)
     url = base_url.rstrip("/") + "/api/tags"
     try:
         resp = httpx.get(url, timeout=10.0)
@@ -104,6 +108,7 @@ def get_openai_models(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    require_instance_admin(current_user)
     """Fetch available models from the OpenAI API using the stored API key."""
     s = get_or_create_settings(db)
     if not s.openai_api_key:

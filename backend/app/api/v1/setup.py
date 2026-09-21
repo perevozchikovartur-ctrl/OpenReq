@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, create_access_token
 from app.database import get_db
-from app.models.user import User, RoleEnum
+from app.models.user import User, RoleEnum, InstanceRoleEnum
 from app.models.workspace import Workspace, WorkspaceMember
 from app.models.environment import Environment, EnvironmentType
 from app.models.app_settings import AppSettings
+from app.config import settings
 from app.schemas.setup import (
     SetupStatusResponse,
     SetupInitializeRequest,
@@ -19,7 +20,10 @@ router = APIRouter()
 @router.get("/status", response_model=SetupStatusResponse)
 def get_setup_status(db: Session = Depends(get_db)):
     user_count = db.query(User).count()
-    return SetupStatusResponse(setup_required=user_count == 0)
+    # An OIDC-only deployment provisions its first local user on the first SSO
+    # login, so it must not be trapped in the password-based setup wizard.
+    oidc_enabled = bool(settings.OIDC_ISSUER_URL and settings.OIDC_CLIENT_ID)
+    return SetupStatusResponse(setup_required=user_count == 0 and not oidc_enabled)
 
 
 @router.post(
@@ -49,6 +53,7 @@ def initialize_setup(
         username=payload.username,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
+        instance_role=InstanceRoleEnum.INSTANCE_ADMIN,
     )
     db.add(user)
     db.flush()

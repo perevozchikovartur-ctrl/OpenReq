@@ -73,6 +73,10 @@ def _run_migrations():
         ("request_history", "resolved_request", "JSON"),
         ("collections", "openapi_spec", "TEXT"),
         ("collection_items", "openapi_spec", "TEXT"),
+        ("users", "instance_role", "VARCHAR(30) DEFAULT 'member'"),
+        ("users", "auth_provider", "VARCHAR(30) DEFAULT 'local'"),
+        ("users", "oidc_issuer", "VARCHAR(500)"),
+        ("users", "oidc_subject", "VARCHAR(255)"),
     ]
     for table, column, col_type in migrations:
         if table in inspector.get_table_names():

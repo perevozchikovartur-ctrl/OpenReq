@@ -29,6 +29,8 @@ export interface User {
   username: string;
   full_name: string | null;
   is_active: boolean;
+  instance_role?: "instance_admin" | "member";
+  auth_provider?: "local" | "oidc";
 }
 
 export interface AppSettings {

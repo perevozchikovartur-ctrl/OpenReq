@@ -16,11 +16,20 @@ export function useAuth() {
         username: "local",
         full_name: "Local User",
         is_active: true,
+        instance_role: "instance_admin",
       });
       setLoading(false);
       return;
     }
-    const token = localStorage.getItem("openreq-token");
+    // The backend redirects here after completing the OIDC authorization-code flow.
+    const callbackToken = window.location.pathname === "/oidc/callback"
+      ? new URLSearchParams(window.location.search).get("token")
+      : null;
+    if (callbackToken) {
+      localStorage.setItem("openreq-token", callbackToken);
+      window.history.replaceState({}, "", "/");
+    }
+    const token = callbackToken || localStorage.getItem("openreq-token");
     if (!token) {
       setLoading(false);
       return;

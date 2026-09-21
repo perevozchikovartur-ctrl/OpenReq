@@ -95,6 +95,29 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins |
 | `PROXY_REQUEST_TIMEOUT` | `30` | Request proxy timeout in seconds |
 
+### Keycloak / OpenID Connect
+
+Set `OIDC_ISSUER_URL` to the Keycloak realm URL and `OIDC_CLIENT_ID` to an
+OIDC client configured for authorization-code flow. Register
+`OIDC_REDIRECT_URI` (or the application's `/api/v1/auth/oidc/callback`) as a
+valid Keycloak redirect URI. Set `OIDC_FRONTEND_URL` when the frontend is on a
+different origin.
+
+Keycloak **client roles** are mapped at each login with JSON environment
+variables. Roles are read from `resource_access.<OIDC_ROLE_CLIENT_ID>.roles`;
+when `OIDC_ROLE_CLIENT_ID` is unset it uses `OIDC_CLIENT_ID`. Example:
+
+```env
+OIDC_INSTANCE_ROLE_MAP={"openreq-admin":"instance_admin"}
+OIDC_DEFAULT_WORKSPACE_ID=workspace-uuid
+OIDC_WORKSPACE_ROLE_MAP={"api-admin":"admin","api-editor":"editor","api-viewer":"viewer"}
+```
+
+`instance_admin` controls instance-wide user and AI-settings administration.
+The workspace map creates or updates membership in the configured workspace;
+the highest mapped workspace role wins. Set `LOCAL_AUTH_ENABLED=false` to
+disable password-based sign-in and registration after OIDC has been verified.
+
 ---
 
 **Tech Stack**

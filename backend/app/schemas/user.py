@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
+from app.models.user import InstanceRoleEnum
 
 
 class UserCreate(BaseModel):
@@ -27,12 +28,18 @@ class UserAdminUpdate(BaseModel):
     full_name: str | None = None
 
 
+class AdminPasswordReset(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class UserOut(BaseModel):
     id: str
     email: str
     username: str
     full_name: str | None
     is_active: bool
+    instance_role: InstanceRoleEnum = InstanceRoleEnum.MEMBER
+    auth_provider: str = "local"
 
     model_config = {"from_attributes": True}
 

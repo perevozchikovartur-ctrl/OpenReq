@@ -119,6 +119,8 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
   const [usersLoading, setUsersLoading] = useState(false);
   const [userMsg, setUserMsg] = useState<{ msg: string; severity: "success" | "error" } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
+  const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
+  const [adminNewPassword, setAdminNewPassword] = useState("");
 
   // Load global settings on mount
   useEffect(() => {
@@ -315,6 +317,18 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
       setTimeout(() => setUserMsg(null), 2000);
     } catch {
       setUserMsg({ msg: t("common.error"), severity: "error" });
+    }
+  };
+
+  const handleAdminPasswordReset = async () => {
+    if (!passwordResetUser || adminNewPassword.length < 8) return;
+    try {
+      await usersApi.resetPassword(passwordResetUser.id, adminNewPassword);
+      setPasswordResetUser(null);
+      setAdminNewPassword("");
+      setUserMsg({ msg: "Password reset successfully", severity: "success" });
+    } catch (err: any) {
+      setUserMsg({ msg: err?.response?.data?.detail || t("common.error"), severity: "error" });
     }
   };
 
@@ -922,6 +936,13 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
                                     <Delete sx={{ fontSize: 16 }} />
                                   </IconButton>
                                 </Tooltip>
+                                {u.auth_provider !== "oidc" && u.instance_role !== "instance_admin" && (
+                                  <Tooltip title="Reset password">
+                                    <IconButton size="small" onClick={() => setPasswordResetUser(u)} sx={{ width: 28, height: 28 }}>
+                                      <Lock sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
                               </Box>
                             )}
                           </TableCell>
@@ -952,6 +973,21 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
           <Button variant="contained" color="error" onClick={handleDeleteUser}>
             {t("common.delete")}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!passwordResetUser} onClose={() => setPasswordResetUser(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Reset password</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Set a new local password for {passwordResetUser?.username}. OIDC users must change their password in Keycloak.
+          </Typography>
+          <TextField autoFocus fullWidth size="small" label="New password" type="password" value={adminNewPassword}
+            onChange={(e) => setAdminNewPassword(e.target.value)} helperText="At least 8 characters" />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetUser(null)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleAdminPasswordReset} disabled={adminNewPassword.length < 8}>Reset password</Button>
         </DialogActions>
       </Dialog>
     </Box>

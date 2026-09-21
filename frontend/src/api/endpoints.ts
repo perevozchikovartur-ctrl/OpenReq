@@ -41,6 +41,8 @@ export const authApi = {
     client.post<Token>("/auth/login", { email, password }),
   register: (data: { email: string; username: string; password: string; full_name?: string }) =>
     client.post<User>("/auth/register", data),
+  oidcConfig: () => client.get<{ enabled: boolean; local_enabled: boolean }>("/auth/oidc/config"),
+  oidcLoginUrl: () => `${API_URL}/api/v1/auth/oidc/login`,
 };
 
 // ── Setup ──
@@ -75,6 +77,8 @@ export const usersApi = {
   adminUpdate: (userId: string, data: { is_active?: boolean; full_name?: string }) =>
     client.patch<User>(`/users/${userId}`, data),
   deleteUser: (userId: string) => client.delete(`/users/${userId}`),
+  resetPassword: (userId: string, newPassword: string) =>
+    client.put(`/users/${userId}/password`, { new_password: newPassword }),
 };
 
 // ── App Settings (global) ──

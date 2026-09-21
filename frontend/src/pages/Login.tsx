@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -12,7 +12,7 @@ import {
   IconButton,
   MenuItem,
 } from "@mui/material";
-import { Visibility, VisibilityOff, Email, Lock, Person, Badge, DarkMode, LightMode } from "@mui/icons-material";
+import { Visibility, VisibilityOff, Email, Lock, Person, Badge, DarkMode, LightMode, Login as LoginIcon } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { alpha, useTheme } from "@mui/material/styles";
 import axios from "axios";
@@ -43,7 +43,18 @@ export default function Login({ onLogin, mode, onToggleTheme }: LoginProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
+  const [localEnabled, setLocalEnabled] = useState(true);
   const logoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    authApi.oidcConfig().then(({ data }) => {
+      setOidcEnabled(data.enabled);
+      setLocalEnabled(data.local_enabled);
+    }).catch(() => setOidcEnabled(false));
+  }, []);
+
+  const handleOidcLogin = () => window.location.assign(authApi.oidcLoginUrl());
 
   const formatValidationError = (detail: unknown) => {
     if (Array.isArray(detail)) {
@@ -299,7 +310,7 @@ export default function Login({ onLogin, mode, onToggleTheme }: LoginProps) {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
+        {localEnabled && <form onSubmit={handleSubmit}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               label={t("auth.email")}
@@ -392,9 +403,20 @@ export default function Login({ onLogin, mode, onToggleTheme }: LoginProps) {
               {isRegister ? t("auth.register") : t("auth.login")}
             </Button>
           </Box>
-        </form>
+        </form>}
 
-        <Typography
+        {oidcEnabled && (
+          <>
+            <Typography variant="caption" display="block" textAlign="center" color="text.secondary" sx={{ my: 2 }}>
+              or
+            </Typography>
+            <Button fullWidth variant="outlined" size="large" startIcon={<LoginIcon />} onClick={handleOidcLogin}>
+              Sign in with Single Sign-On
+            </Button>
+          </>
+        )}
+
+        {localEnabled && <Typography
           variant="body2"
           textAlign="center"
           sx={{
@@ -414,7 +436,7 @@ export default function Login({ onLogin, mode, onToggleTheme }: LoginProps) {
           >
             {isRegister ? t("auth.login") : t("auth.register")}
           </Link>
-        </Typography>
+        </Typography>}
       </Paper>
       </Box>
     </Box>

@@ -23,6 +23,22 @@ class Settings(BaseSettings):
 
     ALLOW_REGISTRATION: bool = True
 
+    LOCAL_AUTH_ENABLED: bool = True
+
+    # OpenID Connect / Keycloak. OIDC is enabled when issuer and client id exist.
+    OIDC_ISSUER_URL: str | None = None
+    OIDC_CLIENT_ID: str | None = None
+    OIDC_CLIENT_SECRET: str | None = None
+    # Client whose resource_access roles are authoritative for OpenReq. Defaults
+    # to OIDC_CLIENT_ID, so unrelated Keycloak clients cannot grant access.
+    OIDC_ROLE_CLIENT_ID: str | None = None
+    OIDC_REDIRECT_URI: str | None = None
+    OIDC_FRONTEND_URL: str | None = None
+    # JSON maps Keycloak role names to OpenReq roles.
+    OIDC_INSTANCE_ROLE_MAP: str = "{}"
+    OIDC_DEFAULT_WORKSPACE_ID: str | None = None
+    OIDC_WORKSPACE_ROLE_MAP: str = "{}"
+
     OPENAI_API_KEY: str | None = None
 
     model_config = {"env_file": ".env", "extra": "ignore"}

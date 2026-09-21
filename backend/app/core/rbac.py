@@ -39,6 +39,6 @@ def check_workspace_role(
 
 
 def require_instance_admin(current_user: User) -> User:
-    if current_user.instance_role != InstanceRoleEnum.INSTANCE_ADMIN:
+    if current_user.instance_role != InstanceRoleEnum.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Requires instance administrator role")
     return current_user

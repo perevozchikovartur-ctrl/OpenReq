@@ -32,7 +32,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         username=payload.username,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
-        instance_role=InstanceRoleEnum.INSTANCE_ADMIN if db.query(User).count() == 0 else InstanceRoleEnum.MEMBER,
+        instance_role=InstanceRoleEnum.ADMIN if db.query(User).count() == 0 else InstanceRoleEnum.MEMBER,
     )
     db.add(user)
     db.commit()

@@ -73,7 +73,7 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const isOidcUser = user.auth_provider === "oidc";
-  const isInstanceAdmin = user.instance_role === "instance_admin";
+  const isInstanceAdmin = user.instance_role === "admin";
   const { learningMode, setLearningMode } = useLearningMode();
   const [requestDefaults, setRequestDefaults] = useState<RequestSettings>({ ...defaultRequestSettings });
   const [requestDefaultsSaving, setRequestDefaultsSaving] = useState(false);
@@ -914,7 +914,7 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
                                     <Delete sx={{ fontSize: 16 }} />
                                   </IconButton>
                                 </Tooltip>
-                                {u.auth_provider !== "oidc" && u.instance_role !== "instance_admin" && (
+                                {u.auth_provider !== "oidc" && u.instance_role !== "admin" && (
                                   <Tooltip title="Reset password">
                                     <IconButton size="small" onClick={() => setPasswordResetUser(u)} sx={{ width: 28, height: 28 }}>
                                       <Lock sx={{ fontSize: 16 }} />

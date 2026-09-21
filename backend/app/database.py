@@ -90,6 +90,9 @@ def _run_migrations():
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 logger.info("Added column %s.%s", table, column)
 
+    # Reflect again after ALTER TABLE so backfills below run on this same start.
+    inspector = inspect(engine)
+
     # Existing workspaces predate access keys. Give each a stable, URL-safe key
     # so they can be addressed by Keycloak group paths immediately after upgrade.
     if "workspaces" in inspector.get_table_names():
@@ -107,6 +110,13 @@ def _run_migrations():
                         index += 1
                     used.add(key)
                     conn.execute(text("UPDATE workspaces SET access_key = :key WHERE id = :id"), {"key": key, "id": workspace_id})
+
+    # Rename the instance-wide administrator role while preserving existing users.
+    if "users" in inspector.get_table_names():
+        user_cols = {c["name"] for c in inspector.get_columns("users")}
+        if "instance_role" in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("UPDATE users SET instance_role = 'admin' WHERE instance_role = 'instance_admin'"))
 
     # Drop orphaned team tables (FK order: team_members first, then teams)
     for table_name in ["team_members", "teams"]:

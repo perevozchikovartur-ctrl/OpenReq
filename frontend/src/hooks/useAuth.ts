@@ -16,7 +16,7 @@ export function useAuth() {
         username: "local",
         full_name: "Local User",
         is_active: true,
-        instance_role: "instance_admin",
+        instance_role: "admin",
       });
       setLoading(false);
       return;

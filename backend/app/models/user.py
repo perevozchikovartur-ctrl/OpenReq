@@ -16,7 +16,7 @@ class RoleEnum(str, enum.Enum):
 
 
 class InstanceRoleEnum(str, enum.Enum):
-    INSTANCE_ADMIN = "instance_admin"
+    ADMIN = "admin"
     MEMBER = "member"
 
 

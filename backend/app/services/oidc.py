@@ -70,7 +70,9 @@ def keycloak_roles(claims: dict) -> set[str]:
 
 def _mapped_instance_role(roles: set[str]) -> InstanceRoleEnum:
     mapped = {_role_map(settings.OIDC_INSTANCE_ROLE_MAP).get(role) for role in roles}
-    return InstanceRoleEnum.INSTANCE_ADMIN if "instance_admin" in mapped else InstanceRoleEnum.MEMBER
+    # Accept the former value during configuration rollout; persisted roles are
+    # migrated to the concise "admin" value on startup.
+    return InstanceRoleEnum.ADMIN if {"admin", "instance_admin"} & mapped else InstanceRoleEnum.MEMBER
 
 
 def _unique_username(db: Session, preferred: str) -> str:
@@ -149,7 +151,7 @@ def _ensure_first_admin_workspace(db: Session, user: User) -> None:
     A password-less deployment has no setup wizard, so without this bootstrap an
     administrator would be stranded on the empty workspace selector.
     """
-    if user.instance_role != InstanceRoleEnum.INSTANCE_ADMIN:
+    if user.instance_role != InstanceRoleEnum.ADMIN:
         return
     has_membership = db.query(WorkspaceMember).filter(WorkspaceMember.user_id == user.id).first()
     if has_membership:

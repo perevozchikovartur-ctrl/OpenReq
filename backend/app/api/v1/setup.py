@@ -53,7 +53,7 @@ def initialize_setup(
         username=payload.username,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
-        instance_role=InstanceRoleEnum.INSTANCE_ADMIN,
+        instance_role=InstanceRoleEnum.ADMIN,
     )
     db.add(user)
     db.flush()

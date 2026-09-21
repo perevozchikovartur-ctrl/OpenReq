@@ -123,7 +123,14 @@ def finish_login(request: Request, db: Session, code: str) -> str:
         response = httpx.post(metadata["token_endpoint"], data=body, timeout=15)
         response.raise_for_status()
         token_data = response.json()
-        claims = jwt.decode(token_data["id_token"], jwks(), algorithms=["RS256", "ES256"], audience=settings.OIDC_CLIENT_ID, issuer=settings.OIDC_ISSUER_URL)
+        # Keycloak may include an at_hash claim in the ID token. python-jose
+        # validates it only when the access token from the same code exchange is
+        # supplied explicitly.
+        claims = jwt.decode(
+            token_data["id_token"], jwks(), algorithms=["RS256", "ES256"],
+            audience=settings.OIDC_CLIENT_ID, issuer=settings.OIDC_ISSUER_URL,
+            access_token=token_data.get("access_token"),
+        )
     except (KeyError, JWTError, httpx.HTTPError) as exc:
         raise HTTPException(status_code=401, detail=f"OIDC authentication failed: {exc}") from exc
 

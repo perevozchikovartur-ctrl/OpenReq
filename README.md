@@ -109,14 +109,11 @@ when `OIDC_ROLE_CLIENT_ID` is unset it uses `OIDC_CLIENT_ID`. Example:
 
 ```env
 OIDC_INSTANCE_ROLE_MAP={"openreq-admin":"admin"}
-OIDC_DEFAULT_WORKSPACE_ID=workspace-uuid
-OIDC_WORKSPACE_ROLE_MAP={"api-admin":"admin","api-editor":"editor","api-viewer":"viewer"}
 ```
 
 `admin` controls instance-wide user and AI-settings administration.
-The workspace map creates or updates membership in the configured workspace;
-the highest mapped workspace role wins. Set `LOCAL_AUTH_ENABLED=false` to
-disable password-based sign-in and registration after OIDC has been verified.
+Set `LOCAL_AUTH_ENABLED=false` to disable password-based sign-in and
+registration after OIDC has been verified.
 
 For access to multiple workspaces, use Keycloak's **Group Membership** mapper
 on the OpenReq client and add the `groups` claim to the access token. OpenReq

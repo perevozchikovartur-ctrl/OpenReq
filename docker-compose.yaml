@@ -21,8 +21,6 @@ services:
       - OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI:-}
       - OIDC_FRONTEND_URL=${OIDC_FRONTEND_URL:-}
       - OIDC_INSTANCE_ROLE_MAP=${OIDC_INSTANCE_ROLE_MAP:-}
-      - OIDC_DEFAULT_WORKSPACE_ID=${OIDC_DEFAULT_WORKSPACE_ID:-}
-      - OIDC_WORKSPACE_ROLE_MAP=${OIDC_WORKSPACE_ROLE_MAP:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

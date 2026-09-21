@@ -36,8 +36,6 @@ class Settings(BaseSettings):
     OIDC_FRONTEND_URL: str | None = None
     # JSON maps Keycloak role names to OpenReq roles.
     OIDC_INSTANCE_ROLE_MAP: str = "{}"
-    OIDC_DEFAULT_WORKSPACE_ID: str | None = None
-    OIDC_WORKSPACE_ROLE_MAP: str = "{}"
 
     OPENAI_API_KEY: str | None = None
 

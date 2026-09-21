@@ -85,22 +85,6 @@ def _unique_username(db: Session, preferred: str) -> str:
     return candidate
 
 
-def _sync_workspace_role(db: Session, user: User, roles: set[str]) -> None:
-    workspace_id = settings.OIDC_DEFAULT_WORKSPACE_ID
-    if not workspace_id:
-        return
-    mapping = _role_map(settings.OIDC_WORKSPACE_ROLE_MAP)
-    values = [mapping[role] for role in roles if mapping.get(role) in {r.value for r in RoleEnum}]
-    if not values:
-        return
-    desired = max((RoleEnum(value) for value in values), key=lambda role: {RoleEnum.VIEWER: 1, RoleEnum.EDITOR: 2, RoleEnum.ADMIN: 3}[role])
-    member = db.query(WorkspaceMember).filter_by(workspace_id=workspace_id, user_id=user.id).first()
-    if member:
-        member.role = desired
-    else:
-        db.add(WorkspaceMember(workspace_id=workspace_id, user_id=user.id, role=desired))
-
-
 _WORKSPACE_GROUP = re.compile(r"^/openreq/workspaces/([a-z0-9][a-z0-9-]{0,79})/(admin|editor|viewer)$")
 _ROLE_RANK = {RoleEnum.VIEWER: 1, RoleEnum.EDITOR: 2, RoleEnum.ADMIN: 3}
 
@@ -230,7 +214,6 @@ def finish_login(request: Request, db: Session, code: str) -> str:
 
     roles = keycloak_roles(access_claims)
     user.instance_role = _mapped_instance_role(roles)
-    _sync_workspace_role(db, user, roles)
     _sync_workspace_groups(db, user, access_claims)
     _ensure_first_admin_workspace(db, user)
     db.commit()

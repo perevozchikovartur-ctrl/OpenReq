@@ -14,12 +14,6 @@ import {
   IconButton,
   Tooltip,
   Portal,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
 } from "@mui/material";
 import { Send, Stop, Save, Dns, NetworkPing, Code } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
@@ -501,41 +495,25 @@ export default function RequestBuilder(props: RequestBuilderProps) {
         )}
 
         {tab === 1 && (
-          <Box sx={{ px: 1, py: 1.5 }}>
-            {pathParamNames.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-                {t("request.noPathParams", "Add parameters to the URL as {name} to edit their values here.")}
-              </Typography>
-            ) : (
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t("common.key", "Key")}</TableCell>
-                    <TableCell>{t("common.value", "Value")}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pathParamNames.map((name) => (
-                    <TableRow key={name}>
-                      <TableCell sx={{ width: "40%", fontFamily: "monospace" }}>{name}</TableCell>
-                      <TableCell>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={props.pathParams[name] ?? ""}
-                          onChange={(event) => props.onPathParamsChange({
-                            ...props.pathParams,
-                            [name]: event.target.value,
-                          })}
-                          placeholder={t("common.value", "Value")}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <KeyValueEditor
+            pairs={pathParamNames.map((name) => ({
+              id: `path-param-${name}`,
+              key: name,
+              value: props.pathParams[name] ?? "",
+              enabled: true,
+            }))}
+            onChange={(pairs) => props.onPathParamsChange(
+              Object.fromEntries(pairs.map((pair) => [pair.key, pair.value])),
             )}
-          </Box>
+            keyLabel={t("request.parameter")}
+            valueLabel={t("common.value")}
+            showEnable={false}
+            readOnlyKeys
+            allowAdd={false}
+            allowRemove={false}
+            resolvedVariables={resolvedVariables}
+            variableGroups={variableGroups}
+          />
         )}
 
         {tab === 2 && (

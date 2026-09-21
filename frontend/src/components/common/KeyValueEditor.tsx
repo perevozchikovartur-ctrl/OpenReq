@@ -35,6 +35,9 @@ interface KeyValueEditorProps {
   valueLabel?: string;
   showDescription?: boolean;
   showEnable?: boolean;
+  readOnlyKeys?: boolean;
+  allowAdd?: boolean;
+  allowRemove?: boolean;
   resolvedVariables?: Map<string, VariableInfo>;
   variableGroups?: VariableGroup[];
 }
@@ -405,6 +408,9 @@ export default function KeyValueEditor({
   valueLabel,
   showDescription = false,
   showEnable = true,
+  readOnlyKeys = false,
+  allowAdd = true,
+  allowRemove = true,
   resolvedVariables,
   variableGroups,
 }: KeyValueEditorProps) {
@@ -473,7 +479,7 @@ export default function KeyValueEditor({
               <TableCell>{resolvedKeyLabel}</TableCell>
               <TableCell>{resolvedValueLabel}</TableCell>
               {showDescription && <TableCell>{t("common.description")}</TableCell>}
-              <TableCell sx={{ width: 40 }} />
+              {allowRemove && <TableCell sx={{ width: 40 }} />}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -499,13 +505,17 @@ export default function KeyValueEditor({
                     </TableCell>
                   )}
                   <TableCell>
-                    <VariableValueCell
-                      value={pair.key}
-                      onChange={(v) => update(pair.id, "key", v)}
-                      placeholder={resolvedKeyLabel}
-                      resolvedVariables={resolvedVariables}
-                      variableGroups={variableGroups}
-                    />
+                    {readOnlyKeys ? (
+                      <Typography fontFamily="monospace" fontSize={13}>{pair.key}</Typography>
+                    ) : (
+                      <VariableValueCell
+                        value={pair.key}
+                        onChange={(v) => update(pair.id, "key", v)}
+                        placeholder={resolvedKeyLabel}
+                        resolvedVariables={resolvedVariables}
+                        variableGroups={variableGroups}
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -564,20 +574,22 @@ export default function KeyValueEditor({
                       />
                     </TableCell>
                   )}
-                  <TableCell>
-                    <Tooltip title={t("common.remove")}>
-                      <IconButton size="small" onClick={() => remove(pair.id)} sx={{ p: 0.25 }}>
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
+                  {allowRemove && (
+                    <TableCell>
+                      <Tooltip title={t("common.remove")}>
+                        <IconButton size="small" onClick={() => remove(pair.id)} sx={{ p: 0.25 }}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
             {pairs.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={showEnable ? (showDescription ? 5 : 4) : (showDescription ? 4 : 3)}
+                  colSpan={(showEnable ? 1 : 0) + 2 + (showDescription ? 1 : 0) + (allowRemove ? 1 : 0)}
                   sx={{ textAlign: "center", py: 2 }}
                 >
                   <Typography variant="body2" color="text.secondary">
@@ -589,11 +601,13 @@ export default function KeyValueEditor({
           </TableBody>
         </Table>
       </TableContainer>
-      <Box sx={{ pt: 0.5 }}>
-        <IconButton size="small" onClick={add}>
-          <Add fontSize="small" />
-        </IconButton>
-      </Box>
+      {allowAdd && (
+        <Box sx={{ pt: 0.5 }}>
+          <IconButton size="small" onClick={add}>
+            <Add fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Value editor modal */}
       <ValueEditorDialog

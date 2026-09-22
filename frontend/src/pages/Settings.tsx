@@ -847,6 +847,9 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
                         {t("auth.email")}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem" }} align="center">
+                        {t("settings.authProvider", "Sign-in")}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem" }} align="center">
                         {t("settings.status")}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem" }} align="right">
@@ -879,6 +882,21 @@ export default function Settings({ mode, onToggleTheme, user, onClose }: Setting
                             </Box>
                           </TableCell>
                           <TableCell sx={{ fontSize: "0.8rem" }}>{u.email}</TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={u.auth_provider === "oidc" ? "OIDC" : "Local"}
+                              size="small"
+                              variant="outlined"
+                              color={u.auth_provider === "oidc" ? "info" : "default"}
+                              sx={{
+                                height: 20,
+                                fontSize: "0.62rem",
+                                fontWeight: 700,
+                                letterSpacing: "0.04em",
+                                borderRadius: 1,
+                              }}
+                            />
+                          </TableCell>
                           <TableCell align="center">
                             {u.is_active ? (
                               <CheckCircle sx={{ fontSize: 16, color: "success.main" }} />

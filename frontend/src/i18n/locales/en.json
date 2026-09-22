@@ -304,6 +304,7 @@
     "passwordTooShort": "Password must be at least 8 characters",
     "passwordWrong": "Current password is incorrect",
     "userManagement": "User Management",
+    "authProvider": "Sign-in",
     "noUsers": "No users found",
     "deactivateUser": "Deactivate",
     "activateUser": "Activate",

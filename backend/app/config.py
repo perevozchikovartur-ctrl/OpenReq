@@ -19,8 +19,6 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:5173"
 
-    PROXY_REQUEST_TIMEOUT: int = 30
-
     ALLOW_REGISTRATION: bool = True
 
     LOCAL_AUTH_ENABLED: bool = True

@@ -31,6 +31,27 @@ export default function RequestSettingsEditor({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, p: 1 }}>
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, fontSize: "0.82rem" }}>
+          {t("requestSettings.timeout")}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+          {t("requestSettings.timeoutDesc")}
+        </Typography>
+        <TextField
+          size="small"
+          type="number"
+          value={settings.timeoutSeconds}
+          onChange={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value >= 1 && value <= 600) update({ timeoutSeconds: value });
+          }}
+          inputProps={{ min: 1, max: 600 }}
+          sx={{ width: 120 }}
+        />
+      </Box>
+      <Divider />
+
       {/* HTTP Version */}
       <Box>
         <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, fontSize: "0.82rem" }}>

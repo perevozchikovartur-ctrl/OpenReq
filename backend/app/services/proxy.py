@@ -9,7 +9,7 @@ from urllib.parse import quote, urlencode
 import httpx
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.models.app_settings import get_or_create_settings
 from app.models.collection import Collection, CollectionItem
 from app.models.environment import Environment
 from app.models.request import AuthType
@@ -41,32 +41,8 @@ _BINARY_TYPES = {
     "application/wasm", "application/protobuf",
 }
 
-# ── Persistent HTTP client — reuses TCP connections & TLS sessions ──
-_client: httpx.AsyncClient | None = None
-
-
-def _get_client() -> httpx.AsyncClient:
-    global _client
-    if _client is None or _client.is_closed:
-        _client = httpx.AsyncClient(
-            timeout=settings.PROXY_REQUEST_TIMEOUT,
-            follow_redirects=True,
-            http2=True,
-            limits=httpx.Limits(
-                max_connections=100,
-                max_keepalive_connections=20,
-                keepalive_expiry=30,
-            ),
-        )
-    return _client
-
-
 async def close_proxy_client() -> None:
-    """Call on app shutdown to cleanly close the connection pool."""
-    global _client
-    if _client and not _client.is_closed:
-        await _client.aclose()
-        _client = None
+    """Compatibility shutdown hook; request clients are closed after each run."""
 
 
 def _resolve_variables(text: str, variables: dict[str, str]) -> str:
@@ -301,12 +277,26 @@ def _build_per_request_client(rs: RequestSettings) -> httpx.AsyncClient:
         verify = False
 
     return httpx.AsyncClient(
-        timeout=settings.PROXY_REQUEST_TIMEOUT,
+        timeout=rs.timeout_seconds,
         follow_redirects=rs.follow_redirects,
         max_redirects=rs.max_redirects,
         http2=(rs.http_version == "http2"),
         verify=verify,
     )
+
+
+def _default_request_settings(db: Session) -> RequestSettings:
+    """Load instance defaults, including JSON saved by the frontend in camelCase."""
+    raw = get_or_create_settings(db).request_defaults or {}
+    aliases = {
+        "timeoutSeconds": "timeout_seconds", "httpVersion": "http_version",
+        "verifySsl": "verify_ssl", "followRedirects": "follow_redirects",
+        "followOriginalMethod": "follow_original_method", "followAuthHeader": "follow_auth_header",
+        "removeRefererOnRedirect": "remove_referer_on_redirect", "encodeUrl": "encode_url",
+        "maxRedirects": "max_redirects", "disableCookieJar": "disable_cookie_jar",
+        "useServerCipherSuite": "use_server_cipher_suite", "disabledTlsProtocols": "disabled_tls_protocols",
+    }
+    return RequestSettings(**{aliases.get(key, key): value for key, value in raw.items()})
 
 
 def _build_form_data(
@@ -637,7 +627,7 @@ async def _run_prepare_phase(
         url = "https://" + url
 
     # ── 3b. URL encoding ──
-    rs = proxy_req.request_settings
+    rs = proxy_req.request_settings or _default_request_settings(db)
     if rs and rs.encode_url:
         from urllib.parse import urlsplit, urlunsplit
         parts = urlsplit(url)
@@ -956,22 +946,14 @@ async def execute_proxy_request(
             request_kwargs["content"] = body
 
     # ── 6. Select client ──
-    use_per_request_client = rs is not None
-    client: httpx.AsyncClient
-
-    if use_per_request_client:
-        assert rs is not None
-        client = _build_per_request_client(rs)
-    else:
-        client = _get_client()
+    client = _build_per_request_client(rs)
 
     try:
         start = time.perf_counter()
         response = await client.request(**request_kwargs)
         elapsed_ms = (time.perf_counter() - start) * 1000
     finally:
-        if use_per_request_client:
-            await client.aclose()
+        await client.aclose()
 
     # ── 7. Handle response: binary vs text ──
     raw_ct = ""

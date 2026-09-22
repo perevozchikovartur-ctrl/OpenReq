@@ -677,6 +677,8 @@
     "failed": "Failed"
   },
   "requestSettings": {
+    "timeout": "Request Timeout (seconds)",
+    "timeoutDesc": "Maximum time to wait for a response (1–600 seconds)",
     "httpVersion": "HTTP Version",
     "http1": "HTTP/1.1",
     "http2": "HTTP/2",

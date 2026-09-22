@@ -93,7 +93,6 @@ Copy `.env.example` to `.env` and adjust as needed.
 | `DATABASE_URL` | `sqlite:///./data/openreq.db` | Database connection string |
 | `ALLOW_REGISTRATION` | `true` | Enable/disable user registration |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins |
-| `PROXY_REQUEST_TIMEOUT` | `30` | Request proxy timeout in seconds |
 
 ### Keycloak / OpenID Connect
 

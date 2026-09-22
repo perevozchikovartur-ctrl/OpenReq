@@ -1007,6 +1007,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
     // Build request settings for backend (snake_case)
     const rs = tab.requestSettings ?? defaultRequestSettings;
     const requestSettings = {
+      timeout_seconds: rs.timeoutSeconds,
       http_version: rs.httpVersion,
       verify_ssl: rs.verifySsl,
       follow_redirects: rs.followRedirects,
@@ -1022,7 +1023,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
 
     // Check if settings differ from defaults
     const isDefaultSettings = JSON.stringify(requestSettings) === JSON.stringify({
-      http_version: "http2", verify_ssl: true, follow_redirects: true,
+      timeout_seconds: 30, http_version: "http2", verify_ssl: true, follow_redirects: true,
       follow_original_method: false, follow_auth_header: false,
       remove_referer_on_redirect: false, encode_url: true, max_redirects: 10,
       disable_cookie_jar: false, use_server_cipher_suite: false, disabled_tls_protocols: [],
@@ -1598,6 +1599,7 @@ export default function AppShell({ mode, onToggleTheme, onLogout, user }: AppShe
       if (req.settings) {
         const s = req.settings as any;
         tab.requestSettings = {
+          timeoutSeconds: s.timeout_seconds ?? s.timeoutSeconds ?? 30,
           httpVersion: s.http_version ?? s.httpVersion ?? "http2",
           verifySsl: s.verify_ssl ?? s.verifySsl ?? true,
           followRedirects: s.follow_redirects ?? s.followRedirects ?? true,

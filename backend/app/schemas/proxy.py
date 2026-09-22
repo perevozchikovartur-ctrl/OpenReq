@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.request import HttpMethod, AuthType
 
@@ -23,6 +23,7 @@ class ScriptResultSchema(BaseModel):
 
 
 class RequestSettings(BaseModel):
+    timeout_seconds: int = Field(default=30, ge=1, le=600)
     http_version: str = "http2"  # "http1" | "http2"
     verify_ssl: bool = True
     follow_redirects: bool = True

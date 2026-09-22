@@ -323,6 +323,7 @@ export type TabType = "request" | "collection" | "testflow" | "folder";
 export type ScriptLanguage = "javascript" | "python";
 
 export interface RequestSettings {
+  timeoutSeconds: number;
   httpVersion: "http1" | "http2";
   verifySsl: boolean;
   followRedirects: boolean;
@@ -338,6 +339,7 @@ export interface RequestSettings {
 }
 
 export const defaultRequestSettings: RequestSettings = {
+  timeoutSeconds: 30,
   httpVersion: "http2",
   verifySsl: true,
   followRedirects: true,
